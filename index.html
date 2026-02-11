@@ -4,76 +4,324 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WebGPU STL Operations</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary: #0f1117;
+      --bg-secondary: #1a1d27;
+      --bg-tertiary: #242836;
+      --border: #2e3345;
+      --text-primary: #e8eaf0;
+      --text-secondary: #9096a8;
+      --text-muted: #636982;
+      --accent: #2d9cdb;
+      --accent-hover: #2487c2;
+      --accent-glow: rgba(45, 156, 219, 0.15);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .app-layout {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .header-badge {
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--accent-glow);
+      color: var(--accent);
+      border: 1px solid rgba(45, 156, 219, 0.25);
+    }
+
+    .main-content {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .sidebar {
+      width: 256px;
+      flex-shrink: 0;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+    }
+
+    .sidebar-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .sidebar-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    select {
+      width: 100%;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      color: var(--text-primary);
+      font-size: 13px;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    select:focus { border-color: var(--accent); }
+
+    .param-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .param-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--bg-tertiary);
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      border: 2px solid var(--bg-primary);
+      box-shadow: 0 0 0 2px var(--accent);
+      transition: transform 0.1s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 9px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--border);
+      color: var(--text-primary);
+    }
+
+    .stats-card {
+      background: var(--bg-tertiary);
+      border-radius: 6px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+    .stat-row span:first-child { color: var(--text-secondary); }
+    .stat-row span:last-child { color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    .info-text {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .viewport {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      position: relative;
+    }
+
+    #gpuCanvas {
+      flex: 1;
+      display: block;
+      background: var(--bg-primary);
+      cursor: grab;
+    }
+    #gpuCanvas:active { cursor: grabbing; }
+
+    .viewport-bar {
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      padding: 6px 16px;
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .error-panel {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 17, 23, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    .error-panel.hidden { display: none; }
+    .error-box {
+      background: var(--bg-secondary);
+      border: 1px solid #c0392b;
+      border-radius: 8px;
+      padding: 24px 32px;
+      max-width: 420px;
+      text-align: center;
+    }
+    .error-box h2 { color: #e74c3c; font-size: 16px; margin-bottom: 8px; }
+    .error-box p { color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
+
+    .divider { border: none; border-top: 1px solid var(--border); }
+  </style>
 </head>
-<body class="bg-gray-900 text-white">
-  <div class="min-h-screen flex flex-col">
-    <!-- Header -->
-    <header class="bg-gray-800 border-b border-gray-700 p-4">
-      <h1 class="text-3xl font-bold">WebGPU STL Operations</h1>
-      <p class="text-gray-400 text-sm mt-1">GPU-accelerated 3D mesh processing</p>
+<body>
+  <div class="app-layout">
+    <header>
+      <h1>WebGPU STL Operations</h1>
+      <span class="header-badge">Compute Shader</span>
     </header>
 
-    <!-- Main Content -->
-    <div class="flex flex-1 gap-4 p-4">
-      <!-- Controls Panel -->
-      <aside class="w-64 bg-gray-800 rounded-lg p-4 border border-gray-700">
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-semibold mb-2">Operation</label>
-            <select id="operationSelect" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white">
-              <option value="scale">Scale Mesh</option>
-              <option value="rotate">Rotate Mesh</option>
-              <option value="translate">Translate Mesh</option>
-              <option value="smooth">Smooth Normals</option>
-            </select>
+    <div class="main-content">
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <span class="sidebar-label">Operation</span>
+          <select id="operationSelect">
+            <option value="scale">Scale Mesh</option>
+            <option value="rotate">Rotate Mesh</option>
+            <option value="translate">Translate Mesh</option>
+            <option value="inflate">Inflate Mesh</option>
+          </select>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="param-row">
+            <span class="sidebar-label">Parameter</span>
+            <span id="paramValue" class="param-value">1.0</span>
           </div>
+          <input type="range" id="paramSlider" min="0.1" max="2" step="0.1" value="1">
+        </div>
 
-          <div>
-            <label class="block text-sm font-semibold mb-2">
-              Parameter
-              <span id="paramValue" class="float-right text-cyan-400">1.0</span>
-            </label>
-            <input type="range" id="paramSlider" min="0.1" max="2" step="0.1" value="1" class="w-full">
+        <div class="sidebar-section" style="gap: 6px;">
+          <button id="processBtn" class="btn btn-primary">Process</button>
+          <button id="resetBtn" class="btn btn-secondary">Reset</button>
+        </div>
+
+        <hr class="divider">
+
+        <div class="stats-card">
+          <div class="stat-row">
+            <span>Vertices</span>
+            <span id="vertexCount">0</span>
           </div>
-
-          <button id="processBtn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-4 rounded transition">
-            Process
-          </button>
-
-          <button id="resetBtn" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded transition">
-            Reset
-          </button>
-
-          <div class="bg-gray-700 rounded p-3">
-            <p class="text-xs text-gray-300 mb-2 font-semibold">Stats</p>
-            <div class="text-xs space-y-1">
-              <p>Vertices: <span id="vertexCount" class="text-cyan-400">0</span></p>
-              <p>Compute Time: <span id="computeTime" class="text-cyan-400">0ms</span></p>
-              <p>FPS: <span id="fpsCounter" class="text-cyan-400">0</span></p>
-            </div>
+          <div class="stat-row">
+            <span>Compute Time</span>
+            <span id="computeTime">0ms</span>
           </div>
-
-          <div class="text-xs text-gray-400 border-t border-gray-700 pt-3">
-            <p class="font-semibold mb-1">Info</p>
-            <p id="gpuInfo">Detecting GPU...</p>
+          <div class="stat-row">
+            <span>FPS</span>
+            <span id="fpsCounter">0</span>
           </div>
         </div>
+
+        <hr class="divider">
+
+        <div class="sidebar-section">
+          <span class="sidebar-label">GPU Info</span>
+          <p id="gpuInfo" class="info-text">Detecting GPU...</p>
+        </div>
+
+        <p class="info-text">Drag to rotate. Scroll to zoom.</p>
       </aside>
 
-      <!-- Canvas Area -->
-      <main class="flex-1 bg-gray-800 rounded-lg border border-gray-700 overflow-hidden flex flex-col">
-        <canvas id="gpuCanvas" class="flex-1 bg-black"></canvas>
-        <div class="bg-gray-700 px-4 py-2 text-xs text-gray-300">
-          Right-click and drag to rotate | Scroll to zoom
+      <div class="viewport">
+        <canvas id="gpuCanvas"></canvas>
+        <div class="viewport-bar">
+          <span>WebGPU Render Pipeline</span>
+          <span>Compute + Render</span>
         </div>
-      </main>
+        <div id="errorPanel" class="error-panel hidden">
+          <div class="error-box">
+            <h2>WebGPU Not Available</h2>
+            <p>Could not initialize WebGPU. Please use a browser that supports WebGPU (Chrome 113+, Edge 113+).</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- LOAD SCRIPTS IN CORRECT ORDER -->
-  <script src="GpuUtils.js"></script>
-  <script src="StlOperations.js"></script>
-  <script src="renderer.js"></script>
+  <script type="module" src="/src/app.js"></script>
 </body>
 </html>

@@ -1,10 +1,13 @@
 const { app, BrowserWindow } = require('electron/main')
 const path = require('node:path')
 
+app.commandLine.appendSwitch('enable-unsafe-webgpu')
+app.commandLine.appendSwitch('enable-features', 'Vulkan')
+
 function createWindow () {
   const win = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1100,
+    height: 700,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js')
     }
