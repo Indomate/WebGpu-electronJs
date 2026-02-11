@@ -9,11 +9,24 @@ function createWindow () {
     width: 1100,
     height: 700,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
-    }
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
   })
 
-  win.loadFile('index.html')
+  const distIndex = path.join(__dirname, 'dist', 'index.html')
+  const fs = require('node:fs')
+
+  if (fs.existsSync(distIndex)) {
+    win.loadFile(distIndex)
+  } else {
+    win.loadFile(path.join(__dirname, 'index.html'))
+  }
+
+  if (process.argv.includes('--devtools')) {
+    win.webContents.openDevTools()
+  }
 }
 
 app.whenReady().then(() => {

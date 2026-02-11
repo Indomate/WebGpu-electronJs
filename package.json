@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "start": "electron ."
+    "start": "vite build && electron .",
+    "start:debug": "vite build && electron . --devtools"
   },
   "keywords": [],
   "author": "",
